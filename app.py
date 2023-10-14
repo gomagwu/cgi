@@ -28,9 +28,14 @@ def get_db_connection():
 def is_valid_title(title):
     return 6 <= len(title) <= 255
 
-@app.route('/<path:title>', methods=['POST'])
-def create_task(title):
-    title = urllib.parse.unquote(title)
+@app.route('/', methods=['POST'])
+def create_task():
+    # Get the raw query string from the URL
+    raw_query_string = request.query_string.decode('utf-8')
+    # Parse the query string to extract parameters
+    query_params = urllib.parse.parse_qs(raw_query_string)
+    title_param = query_params.get('title', [None])[0]  # Get the 'title' parameter from query parameters list
+    title = urllib.parse.unquote(title_param)
     if title and is_valid_title(title):
         try:
             with get_db_connection() as connection:
@@ -44,44 +49,21 @@ def create_task(title):
     else:
         return jsonify(error="Invalid title"), 400
 
-# Route for handling GET requests with id parameter in the URL
-@app.route('/<int:id>', methods=['GET'])
-def get_task(id):
-    try:
-        with get_db_connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created FROM tasks WHERE id = %s", (id,))
-                task = cursor.fetchone()
-        if task:
-            return jsonify(task), 200
-        else:
-            return jsonify(error="Task not found"), 404
-    except Exception as e:
-        return jsonify(error=str(e)), 500
-
-# Route for handling GET requests without id parameter (to retrieve all tasks)
-@app.route('/', methods=['GET'])
-def get_all_tasks():
-    try:
-        with get_db_connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created FROM tasks")
-                tasks = cursor.fetchall()
-        return jsonify(tasks), 200
-    except Exception as e:
-        return jsonify(error=str(e)), 500
-
-
-@app.route('/<int:id>/<path:title>', methods=['PUT', 'DELETE'])
-def update_or_delete_task(id, title):
-    task_id = id
-    task_id = urllib.parse.unquote(task_id)
+# Route for handling PUT and DELETE requests with id parameter in the URL
+@app.route('/', methods=['PUT', 'DELETE'])
+def update_or_delete_task():
+    # Get the raw query string from the URL
+    raw_query_string = request.query_string.decode('utf-8')
+    # Parse the query string to extract parameters
+    query_params = urllib.parse.parse_qs(raw_query_string)
+    task_id_param = query_params.get('id', [None])[0]  # Get the 'id' parameter from query parameters list
+    task_id = urllib.parse.unquote(task_id_param)
     if not task_id:
         return jsonify(error="Task ID is required"), 400
 
     if request.method == 'PUT':
-        new_title = title
-        new_title = urllib.parse.unquote(new_title)
+        new_title_param = query_params.get('title', [None])[0]  # Get the 'title' parameter from query parameters list
+        new_title = urllib.parse.unquote(new_title_param)
         if new_title and is_valid_title(new_title):
             try:
                 with get_db_connection() as connection:
