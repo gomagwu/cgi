@@ -28,42 +28,65 @@ def get_db_connection():
 def is_valid_title(title):
     return 6 <= len(title) <= 255
 
-@app.route('/', methods=['POST'])
-def create_task():
-    # Get the raw query string from the URL
-    raw_query_string = request.query_string.decode('utf-8')
-    # Parse the query string to extract parameters
-    query_params = urllib.parse.parse_qs(raw_query_string)
-    title_param = query_params.get('title', [None])[0]  # Get the 'title' parameter from query parameters list
-    title = urllib.parse.unquote(title_param)
-    if title and is_valid_title(title):
-        try:
-            with get_db_connection() as connection:
-                with connection.cursor() as cursor:
-                    cursor.execute("INSERT INTO tasks (title) VALUES (%s)", (title,))
-                    connection.commit()
-                    task_id = cursor.lastrowid
-                    return jsonify({"id": task_id, "title": title, "created": "CURRENT_TIMESTAMP"}), 201
-        except Exception as e:
-            return jsonify(error=str(e)), 500
-    else:
-        return jsonify(error="Invalid title"), 400
+@app.route('/', methods=['POST', 'GET'])
+def tasks():
+    if request.method == 'POST':
+        # Extract the value after the question mark
+        full_path = request.full_path
+        title = full_path.split('?')[1] if '?' in full_path else None
+        
+        if title and is_valid_title(title):
+            title = title.replace('+', ' ')
+            try:
+                with get_db_connection() as connection:
+                    with connection.cursor() as cursor:
+                        cursor.execute("INSERT INTO tasks (title) VALUES (%s)", (title,))
+                        connection.commit()
+                        task_id = cursor.lastrowid
+                        return jsonify({"id": task_id, "title": title, "created": "CURRENT_TIMESTAMP"}), 201
+            except Exception as e:
+                return jsonify(error=str(e)), 500
+        else:
+            return jsonify(error="Invalid title"), 400
 
-# Route for handling PUT and DELETE requests with id parameter in the URL
+    elif request.method == 'GET':
+        full_path = request.full_path
+        task_id = full_path.split('?')[1] if '?' in full_path else None
+        if task_id:
+            try:
+                with get_db_connection() as connection:
+                    with connection.cursor() as cursor:
+                        cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created FROM tasks WHERE id = %s", (task_id,))
+                        task = cursor.fetchone()
+                if task:
+                    return jsonify(task), 200
+                else:
+                    return jsonify(error="Task not found"), 404
+            except Exception as e:
+                return jsonify(error=str(e)), 500
+        else:
+            try:
+                with get_db_connection() as connection:
+                    with connection.cursor() as cursor:
+                        cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created FROM tasks")
+                        tasks = cursor.fetchall()
+                return jsonify(tasks), 200
+            except Exception as e:
+                return jsonify(error=str(e)), 500
+
 @app.route('/', methods=['PUT', 'DELETE'])
 def update_or_delete_task():
-    # Get the raw query string from the URL
-    raw_query_string = request.query_string.decode('utf-8')
-    # Parse the query string to extract parameters
-    query_params = urllib.parse.parse_qs(raw_query_string)
-    task_id_param = query_params.get('id', [None])[0]  # Get the 'id' parameter from query parameters list
-    task_id = urllib.parse.unquote(task_id_param)
+    full_path = request.full_path
+    task_id = full_path.split('?')[1] if '?' in full_path else None
+    task_i = task_id.split('/') if task_id else None
+    task_id = task_i[0] if task_i else None
+    new_title = task_i[1] if task_i else None
+    
+
     if not task_id:
         return jsonify(error="Task ID is required"), 400
 
     if request.method == 'PUT':
-        new_title_param = query_params.get('title', [None])[0]  # Get the 'title' parameter from query parameters list
-        new_title = urllib.parse.unquote(new_title_param)
         if new_title and is_valid_title(new_title):
             try:
                 with get_db_connection() as connection:
