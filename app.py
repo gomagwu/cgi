@@ -48,7 +48,6 @@ def tasks():
 
     elif request.method == 'GET':
         task_id = request.args.get('id')
-        task_id = urllib.parse.unquote(task_id)
         if task_id:
             try:
                 with get_db_connection() as connection:
