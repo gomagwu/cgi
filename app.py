@@ -7,6 +7,7 @@
 from flask import Flask, request, jsonify, abort
 import os
 import pymysql
+import urllib.parse
 
 app = Flask(__name__)
 
@@ -30,7 +31,8 @@ def is_valid_title(title):
 @app.route('/', methods=['POST', 'GET'])
 def tasks():
     if request.method == 'POST':
-        title = request.args.get('title')
+        title_param = request.args.get('title')
+        title = urllib.parse.unquote(title_param)
         if title and is_valid_title(title):
             try:
                 with get_db_connection() as connection:
@@ -46,6 +48,7 @@ def tasks():
 
     elif request.method == 'GET':
         task_id = request.args.get('id')
+        task_id = urllib.parse.unquote(task_id)
         if task_id:
             try:
                 with get_db_connection() as connection:
@@ -71,11 +74,13 @@ def tasks():
 @app.route('/', methods=['PUT', 'DELETE'])
 def update_or_delete_task():
     task_id = request.args.get('id')
+    task_id = urllib.parse.unquote(task_id)
     if not task_id:
         return jsonify(error="Task ID is required"), 400
 
     if request.method == 'PUT':
         new_title = request.args.get('title')
+        new_title = urllib.parse.unquote(new_title)
         if new_title and is_valid_title(new_title):
             try:
                 with get_db_connection() as connection:
