@@ -12,9 +12,9 @@ app = Flask(__name__)
 
 # Database connection parameters - update as needed
 DB_USER = os.getenv('DB_USER') or 'root'
-DB_PSWD = os.getenv('DB_PSWD') or None
+DB_PSWD = os.getenv('DB_PSWD') or 'password'
 DB_NAME = os.getenv('DB_NAME') or 'task_logger'
-DB_HOST = os.getenv('DB_HOST') or 'localhost'
+DB_HOST = os.getenv('DB_HOST') or '127.0.0.1'
 DB_SOCKET = os.getenv('DB_SOCKET') or None
 
 def get_db_connection():
@@ -99,4 +99,4 @@ def update_or_delete_task():
             return jsonify(error=str(e)), 500
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=80)
