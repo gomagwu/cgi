@@ -28,57 +28,59 @@ def get_db_connection():
 def is_valid_title(title):
     return 6 <= len(title) <= 255
 
-@app.route('/', methods=['POST', 'GET'])
-def tasks():
-    if request.method == 'POST':
-        title_param = request.args.get('title')
-        title = urllib.parse.unquote(title_param)
-        if title and is_valid_title(title):
-            try:
-                with get_db_connection() as connection:
-                    with connection.cursor() as cursor:
-                        cursor.execute("INSERT INTO tasks (title) VALUES (%s)", (title,))
-                        connection.commit()
-                        task_id = cursor.lastrowid
-                        return jsonify({"id": task_id, "title": title, "created": "CURRENT_TIMESTAMP"}), 201
-            except Exception as e:
-                return jsonify(error=str(e)), 500
-        else:
-            return jsonify(error="Invalid title"), 400
+@app.route('/<path:title>', methods=['POST'])
+def create_task(title):
+    title = urllib.parse.unquote(title)
+    if title and is_valid_title(title):
+        try:
+            with get_db_connection() as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute("INSERT INTO tasks (title) VALUES (%s)", (title,))
+                    connection.commit()
+                    task_id = cursor.lastrowid
+                    return jsonify({"id": task_id, "title": title, "created": "CURRENT_TIMESTAMP"}), 201
+        except Exception as e:
+            return jsonify(error=str(e)), 500
+    else:
+        return jsonify(error="Invalid title"), 400
 
-    elif request.method == 'GET':
-        task_id = request.args.get('id')
-        if task_id:
-            try:
-                with get_db_connection() as connection:
-                    with connection.cursor() as cursor:
-                        cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created FROM tasks WHERE id = %s", (task_id,))
-                        task = cursor.fetchone()
-                if task:
-                    return jsonify(task), 200
-                else:
-                    return jsonify(error="Task not found"), 404
-            except Exception as e:
-                return jsonify(error=str(e)), 500
+# Route for handling GET requests with id parameter in the URL
+@app.route('/<int:id>', methods=['GET'])
+def get_task(id):
+    try:
+        with get_db_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created FROM tasks WHERE id = %s", (id,))
+                task = cursor.fetchone()
+        if task:
+            return jsonify(task), 200
         else:
-            try:
-                with get_db_connection() as connection:
-                    with connection.cursor() as cursor:
-                        cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created FROM tasks")
-                        tasks = cursor.fetchall()
-                return jsonify(tasks), 200
-            except Exception as e:
-                return jsonify(error=str(e)), 500
+            return jsonify(error="Task not found"), 404
+    except Exception as e:
+        return jsonify(error=str(e)), 500
 
-@app.route('/', methods=['PUT', 'DELETE'])
-def update_or_delete_task():
-    task_id = request.args.get('id')
+# Route for handling GET requests without id parameter (to retrieve all tasks)
+@app.route('/', methods=['GET'])
+def get_all_tasks():
+    try:
+        with get_db_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created FROM tasks")
+                tasks = cursor.fetchall()
+        return jsonify(tasks), 200
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/<int:id>/<path:title>', methods=['PUT', 'DELETE'])
+def update_or_delete_task(id, title):
+    task_id = id
     task_id = urllib.parse.unquote(task_id)
     if not task_id:
         return jsonify(error="Task ID is required"), 400
 
     if request.method == 'PUT':
-        new_title = request.args.get('title')
+        new_title = title
         new_title = urllib.parse.unquote(new_title)
         if new_title and is_valid_title(new_title):
             try:
