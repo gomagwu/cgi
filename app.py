@@ -53,7 +53,7 @@ def tasks():
 
     elif request.method == 'GET':
         full_path = request.full_path
-        task_id = int(full_path.split('?')[1]) if '?' in full_path else None
+        task_id = full_path.split('?')[1] if '?' in full_path else None
         if task_id:
             try:
                 with get_db_connection() as connection:
@@ -80,7 +80,7 @@ def tasks():
         full_path = request.full_path
         task = full_path.split('?')[1] if '?' in full_path else None
         task_i = task.split('/') if task else None
-        task_id = int(task_i[0]) if task_i else None
+        task_id = task_i[0] if task_i else None
         new_title = task_i[1] if task_i else None
         if new_title and is_valid_title(new_title):
             try:
