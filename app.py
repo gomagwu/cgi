@@ -37,6 +37,7 @@ def tasks():
         
         if title and is_valid_title(title):
             title = urllib.parse.unquote(title)
+            title = title.replace('+', ' ')
             try:
                 with get_db_connection() as connection:
                     with connection.cursor() as cursor:
@@ -80,9 +81,10 @@ def tasks():
     elif request.method == 'PUT':
         full_path = request.full_path
         task = full_path.split('?')[1] if '?' in full_path else None
+        task = urllib.parse.unquote(task)
         task_i = task.split('/') if task else None
         task_id = task_i[0] if task_i else None
-        new_title = task_i[0] if task_i else None
+        new_title = task_i[1] if task_i else None
         if new_title and is_valid_title(new_title):
             try:
                 with get_db_connection() as connection:
