@@ -36,7 +36,7 @@ def tasks():
         title = full_path.split('?')[1] if '?' in full_path else None
         
         if title and is_valid_title(title):
-            title = title.replace('+', ' ')
+            title = urllib.parse.unquote(title)
             try:
                 with get_db_connection() as connection:
                     with connection.cursor() as cursor:
@@ -59,7 +59,7 @@ def tasks():
             try:
                 with get_db_connection() as connection:
                     with connection.cursor() as cursor:
-                        cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i') as created FROM tasks WHERE id = %s", (task_id,))
+                        cursor.execute("SELECT id, title, DATE_FORMAT(created,  '%%Y-%%m-%%d %%H:%%i') as created FROM tasks WHERE id = %s", (task_id,))
                         task = cursor.fetchone()
                 if task:
                     return jsonify(task), 200
@@ -82,7 +82,7 @@ def tasks():
         task = full_path.split('?')[1] if '?' in full_path else None
         task_i = task.split('/') if task else None
         task_id = task_i[0] if task_i else None
-        new_title = task_i[1] if task_i else None
+        new_title = task_i[0] if task_i else None
         if new_title and is_valid_title(new_title):
             try:
                 with get_db_connection() as connection:
