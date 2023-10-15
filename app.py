@@ -43,7 +43,7 @@ def tasks():
                         cursor.execute("INSERT INTO tasks (title) VALUES (%s)", (title,))
                         connection.commit()
                         task_id = cursor.lastrowid
-                        cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created FROM tasks WHERE id = LAST_INSERT_ID()")
+                        cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i') as created FROM tasks WHERE id = LAST_INSERT_ID()")
                         new_task = cursor.fetchone()
                         return jsonify(new_task), 201
             except Exception as e:
@@ -54,6 +54,7 @@ def tasks():
     elif request.method == 'GET':
         full_path = request.full_path
         task_id = full_path.split('?')[1] if '?' in full_path else None
+
         if task_id:
             try:
                 with get_db_connection() as connection:
