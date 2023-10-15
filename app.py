@@ -28,7 +28,7 @@ def get_db_connection():
 def is_valid_title(title):
     return 6 <= len(title) <= 255
 
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/', methods=['POST', 'GET', 'PUT', 'DELETE'])
 def tasks():
     if request.method == 'POST':
         # Extract the value after the question mark
@@ -43,7 +43,9 @@ def tasks():
                         cursor.execute("INSERT INTO tasks (title) VALUES (%s)", (title,))
                         connection.commit()
                         task_id = cursor.lastrowid
-                        return jsonify({"id": task_id, "title": title, "created": "CURRENT_TIMESTAMP"}), 201
+                        cursor.execute("SELECT * FROM tasks WHERE id = LAST_INSERT_ID()")
+                        new_task = cursor.fetchone()
+                        return jsonify(new_task), 201
             except Exception as e:
                 return jsonify(error=str(e)), 500
         else:
@@ -56,7 +58,7 @@ def tasks():
             try:
                 with get_db_connection() as connection:
                     with connection.cursor() as cursor:
-                        cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created FROM tasks WHERE id = %s", (task_id,))
+                        cursor.execute("SELECT id, title, DATE_FORMAT(created, '%Y-%m-%d %H:%i') as created FROM tasks WHERE id = %s", (task_id,))
                         task = cursor.fetchone()
                 if task:
                     return jsonify(task), 200
@@ -73,20 +75,13 @@ def tasks():
                 return jsonify(tasks), 200
             except Exception as e:
                 return jsonify(error=str(e)), 500
-
-@app.route('/', methods=['PUT', 'DELETE'])
-def update_or_delete_task():
-    full_path = request.full_path
-    task_id = full_path.split('?')[1] if '?' in full_path else None
-    task_i = task_id.split('/') if task_id else None
-    task_id = task_i[0] if task_i else None
-    new_title = task_i[1] if task_i else None
     
-
-    if not task_id:
-        return jsonify(error="Task ID is required"), 400
-
-    if request.method == 'PUT':
+    elif request.method == 'PUT':
+        full_path = request.full_path
+        task = full_path.split('?')[1] if '?' in full_path else None
+        task_i = task.split('/') if task else None
+        task_id = task_i[0] if task_i else None
+        new_title = task_i[1] if task_i else None
         if new_title and is_valid_title(new_title):
             try:
                 with get_db_connection() as connection:
@@ -100,6 +95,9 @@ def update_or_delete_task():
             return jsonify(error="Invalid title"), 400
 
     elif request.method == 'DELETE':
+        full_path = request.full_path
+        task_id = full_path.split('?')[1] if '?' in full_path else None
+        
         try:
             with get_db_connection() as connection:
                 with connection.cursor() as cursor:
