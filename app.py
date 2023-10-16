@@ -15,7 +15,7 @@ app = Flask(__name__)
 DB_USER = os.getenv('DB_USER') or 'root'
 DB_PSWD = os.getenv('DB_PSWD') or 'password'
 DB_NAME = os.getenv('DB_NAME') or 'task_logger'
-DB_HOST = os.getenv('DB_HOST') or '127.0.0.1'
+DB_HOST = os.getenv('DB_HOST') or 'tlcdkstack-taskloggerauroradb55093cd6-y38dqjnt9c9l.cluster-cy7flihn5dn1.us-west-2.rds.amazonaws.com'
 DB_SOCKET = os.getenv('DB_SOCKET') or None
 
 def get_db_connection():
